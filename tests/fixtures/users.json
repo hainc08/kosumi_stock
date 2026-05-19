@@ -1,0 +1,50 @@
+{
+  "_comment": "Tài khoản test cho từng role — được seed bởi setup.ts",
+  "users": [
+    {
+      "id_alias": "admin",
+      "username": "test_admin",
+      "password": "Admin@123",
+      "email": "test_admin@wms.test",
+      "fullName": "Test Admin",
+      "role": "ADMIN",
+      "_can": ["Toàn quyền"]
+    },
+    {
+      "id_alias": "manager",
+      "username": "test_manager",
+      "password": "Manager@123",
+      "email": "test_manager@wms.test",
+      "fullName": "Test Manager",
+      "role": "WAREHOUSE_MANAGER",
+      "_can": ["Duyệt phiếu nhập", "Duyệt phiếu xuất", "Xem báo cáo", "Quản lý vật tư"]
+    },
+    {
+      "id_alias": "accountant",
+      "username": "test_accountant",
+      "password": "Acc@123",
+      "email": "test_accountant@wms.test",
+      "fullName": "Test Accountant",
+      "role": "ACCOUNTANT",
+      "_can": ["Tạo phiếu nhập", "Tạo phiếu xuất", "Xem báo cáo"]
+    },
+    {
+      "id_alias": "staff",
+      "username": "test_staff",
+      "password": "Staff@123",
+      "email": "test_staff@wms.test",
+      "fullName": "Test Staff",
+      "role": "WAREHOUSE_STAFF",
+      "_can": ["Xác nhận xuất thực tế", "Xem tồn kho"]
+    },
+    {
+      "id_alias": "viewer",
+      "username": "test_viewer",
+      "password": "Viewer@123",
+      "email": "test_viewer@wms.test",
+      "fullName": "Test Viewer",
+      "role": "VIEWER",
+      "_can": ["Chỉ xem báo cáo tồn kho"]
+    }
+  ]
+}

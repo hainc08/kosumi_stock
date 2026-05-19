@@ -1,0 +1,50 @@
+{
+  "_comment": "Vật tư test — seed vào DB trước khi chạy tests. opening_qty dùng cho inventory balance.",
+  "products": [
+    {
+      "code": "TEST_ON1",
+      "name": "Ống Test 139.8x6x6000mm",
+      "unit": "ống",
+      "category": "Ống",
+      "minStock": 5,
+      "opening_qty": 30,
+      "_note": "Hàng đủ tồn — dùng để test xuất kho bình thường"
+    },
+    {
+      "code": "TEST_T1",
+      "name": "Tấm Test 12x2m x6m",
+      "unit": "Tấm",
+      "category": "Tấm",
+      "minStock": 5,
+      "opening_qty": 10,
+      "_note": "Tồn trung bình — dùng test nhập + xuất kết hợp"
+    },
+    {
+      "code": "TEST_LOW",
+      "name": "Hàng Test Tồn Thấp",
+      "unit": "cái",
+      "category": "Khác",
+      "minStock": 10,
+      "opening_qty": 3,
+      "_note": "Tồn thấp hơn minStock — dùng test low-stock alert"
+    },
+    {
+      "code": "TEST_ZERO",
+      "name": "Hàng Test Tồn Bằng 0",
+      "unit": "cái",
+      "category": "Khác",
+      "minStock": 5,
+      "opening_qty": 0,
+      "_note": "Tồn = 0 — dùng test INSUFFICIENT_STOCK error"
+    },
+    {
+      "code": "TEST_RECV",
+      "name": "Hàng Test Chỉ Nhập",
+      "unit": "kg",
+      "category": "Khác",
+      "minStock": 0,
+      "opening_qty": 0,
+      "_note": "Tồn = 0, nhập mới hoàn toàn — test receipt flow"
+    }
+  ]
+}

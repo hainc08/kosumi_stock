@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #30363d transparent;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+body {
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Force browser to render select/option in dark mode */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #1c2333;
+  color: #e6edf3;
+}
+
+select option:hover,
+select option:checked {
+  background-color: #2d3748;
+}
+
+/* Safe area padding for mobile devices (notch/home bar) */
+@supports (padding: max(0px)) {
+  .main-content {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent tap highlight on mobile */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Better touch target size */
+@media (max-width: 767px) {
+  button, a[role="button"] {
+    min-height: 36px;
+  }
+}

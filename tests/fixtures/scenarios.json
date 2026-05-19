@@ -1,0 +1,214 @@
+{
+  "_comment": "Kịch bản test tích hợp — mỗi scenario là 1 luồng nghiệp vụ hoàn chỉnh",
+
+  "scenarios": {
+
+    "receipt_full_flow": {
+      "_name": "Nhập kho — Luồng đầy đủ DRAFT → APPROVED",
+      "_actor_sequence": ["accountant", "accountant", "manager"],
+      "input": {
+        "receipt": {
+          "receiptDate": "2026-05-18",
+          "supplier": "Thép Nam Vang Test",
+          "note": "Phiếu nhập test tích hợp",
+          "items": [
+            { "product_alias": "TEST_ON1", "quantity": 15, "unitPrice": 0 },
+            { "product_alias": "TEST_T1",  "quantity": 5,  "unitPrice": 0 }
+          ]
+        }
+      },
+      "expected": {
+        "after_create":  { "status": "DRAFT",   "inventory_unchanged": true },
+        "after_submit":  { "status": "PENDING",  "inventory_unchanged": true },
+        "after_approve": {
+          "status": "APPROVED",
+          "inventory_changes": [
+            { "product_alias": "TEST_ON1", "closing_qty_delta": 15 },
+            { "product_alias": "TEST_T1",  "closing_qty_delta": 5  }
+          ]
+        },
+        "audit_log": {
+          "actions_recorded": ["CREATE_RECEIPT", "SUBMIT_RECEIPT", "APPROVE_RECEIPT"]
+        }
+      }
+    },
+
+    "issue_full_flow": {
+      "_name": "Xuất kho — Luồng đầy đủ DRAFT → CONFIRMED (actual_qty < requested_qty)",
+      "_actor_sequence": ["accountant", "accountant", "manager", "staff"],
+      "input": {
+        "issue": {
+          "issueDate": "2026-05-18",
+          "recipient": "Nguyễn Văn Test",
+          "department": "Thi công A",
+          "note": "Phiếu xuất test tích hợp",
+          "items": [
+            { "product_alias": "TEST_ON1", "requestedQty": 10 }
+          ]
+        },
+        "confirm": {
+          "items": [
+            { "product_alias": "TEST_ON1", "actualQty": 8, "_note": "Thực tế xuất ít hơn yêu cầu" }
+          ]
+        }
+      },
+      "expected": {
+        "after_create":  { "status": "DRAFT",    "inventory_unchanged": true },
+        "after_submit":  { "status": "PENDING",   "inventory_unchanged": true },
+        "after_approve": { "status": "APPROVED",  "inventory_unchanged": true,
+                           "_note": "Quan trọng: approve KHÔNG trừ tồn" },
+        "after_confirm": {
+          "status": "CONFIRMED",
+          "inventory_changes": [
+            { "product_alias": "TEST_ON1", "closing_qty_delta": -8,
+              "_note": "Trừ theo actual_qty=8, không phải requested_qty=10" }
+          ]
+        },
+        "audit_log": {
+          "actions_recorded": ["CREATE_ISSUE", "SUBMIT_ISSUE", "APPROVE_ISSUE", "CONFIRM_ISSUE"]
+        }
+      }
+    },
+
+    "receipt_then_issue": {
+      "_name": "Nhập rồi xuất — Kiểm tra tồn kho liên tiếp",
+      "_note": "Chạy sau receipt_full_flow, dùng TEST_RECV (ban đầu = 0)",
+      "steps": [
+        {
+          "step": 1,
+          "action": "CREATE_AND_APPROVE_RECEIPT",
+          "actor": "accountant_then_manager",
+          "data": { "product_alias": "TEST_RECV", "quantity": 20 },
+          "expect_closing_qty": 20
+        },
+        {
+          "step": 2,
+          "action": "CREATE_AND_CONFIRM_ISSUE",
+          "actor": "accountant_then_manager_then_staff",
+          "data": { "product_alias": "TEST_RECV", "requestedQty": 7, "actualQty": 7 },
+          "expect_closing_qty": 13
+        },
+        {
+          "step": 3,
+          "action": "CREATE_AND_CONFIRM_ISSUE",
+          "data": { "product_alias": "TEST_RECV", "requestedQty": 5, "actualQty": 5 },
+          "expect_closing_qty": 8
+        }
+      ]
+    },
+
+    "rbac_matrix": {
+      "_name": "Phân quyền — Kiểm tra từng role với từng endpoint",
+      "tests": [
+        {
+          "endpoint": "POST /api/receipts",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER", "ACCOUNTANT"],
+          "forbidden_roles": ["WAREHOUSE_STAFF", "VIEWER"],
+          "no_token": true
+        },
+        {
+          "endpoint": "POST /api/receipts/:id/approve",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER"],
+          "forbidden_roles": ["ACCOUNTANT", "WAREHOUSE_STAFF", "VIEWER"],
+          "no_token": true
+        },
+        {
+          "endpoint": "POST /api/issues",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER", "ACCOUNTANT"],
+          "forbidden_roles": ["WAREHOUSE_STAFF", "VIEWER"],
+          "no_token": true
+        },
+        {
+          "endpoint": "POST /api/issues/:id/approve",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER"],
+          "forbidden_roles": ["ACCOUNTANT", "WAREHOUSE_STAFF", "VIEWER"],
+          "no_token": true
+        },
+        {
+          "endpoint": "POST /api/issues/:id/confirm",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER", "WAREHOUSE_STAFF"],
+          "forbidden_roles": ["ACCOUNTANT", "VIEWER"],
+          "no_token": true
+        },
+        {
+          "endpoint": "GET /api/inventory",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER", "ACCOUNTANT", "WAREHOUSE_STAFF", "VIEWER"],
+          "forbidden_roles": [],
+          "no_token": true
+        },
+        {
+          "endpoint": "POST /api/products",
+          "allowed_roles":  ["ADMIN", "WAREHOUSE_MANAGER"],
+          "forbidden_roles": ["ACCOUNTANT", "WAREHOUSE_STAFF", "VIEWER"],
+          "no_token": true
+        },
+        {
+          "endpoint": "GET /api/users",
+          "allowed_roles":  ["ADMIN"],
+          "forbidden_roles": ["WAREHOUSE_MANAGER", "ACCOUNTANT", "WAREHOUSE_STAFF", "VIEWER"],
+          "no_token": true
+        }
+      ]
+    },
+
+    "edge_cases": {
+      "_name": "Edge cases — Lỗi nghiệp vụ",
+      "cases": [
+        {
+          "id": "insufficient_stock_zero",
+          "description": "Xuất kho khi tồn = 0",
+          "setup": "product TEST_ZERO có closing_qty = 0",
+          "action": "CREATE_ISSUE với product TEST_ZERO quantity=1",
+          "expected_error": { "code": "INSUFFICIENT_STOCK", "http_status": 409 }
+        },
+        {
+          "id": "insufficient_stock_exceed",
+          "description": "Xuất kho qty > tồn",
+          "setup": "product TEST_ON1 có closing_qty = 30",
+          "action": "CREATE_ISSUE với TEST_ON1 quantity=99",
+          "expected_error": { "code": "INSUFFICIENT_STOCK", "http_status": 409 }
+        },
+        {
+          "id": "double_approve_receipt",
+          "description": "Approve phiếu nhập đã APPROVED",
+          "setup": "Có receipt đã ở trạng thái APPROVED",
+          "action": "POST /api/receipts/:id/approve lần 2",
+          "expected_error": { "code": "INVALID_STATUS_TRANSITION", "http_status": 409 }
+        },
+        {
+          "id": "approve_draft_directly",
+          "description": "Approve phiếu nhập còn DRAFT (chưa submit)",
+          "setup": "Có receipt ở trạng thái DRAFT",
+          "action": "POST /api/receipts/:id/approve",
+          "expected_error": { "code": "INVALID_STATUS_TRANSITION", "http_status": 409 }
+        },
+        {
+          "id": "edit_approved_receipt",
+          "description": "Sửa phiếu đã APPROVED",
+          "setup": "Có receipt ở trạng thái APPROVED",
+          "action": "PUT /api/receipts/:id",
+          "expected_error": { "code": "INVALID_STATUS_TRANSITION", "http_status": 409 }
+        },
+        {
+          "id": "confirm_draft_issue",
+          "description": "Staff confirm phiếu xuất còn DRAFT",
+          "setup": "Có issue ở DRAFT",
+          "action": "POST /api/issues/:id/confirm",
+          "expected_error": { "code": "INVALID_STATUS_TRANSITION", "http_status": 409 }
+        },
+        {
+          "id": "login_wrong_password",
+          "description": "Đăng nhập sai mật khẩu",
+          "action": "POST /api/auth/login với password sai",
+          "expected_error": { "code": "INVALID_CREDENTIALS", "http_status": 401 }
+        },
+        {
+          "id": "missing_required_fields",
+          "description": "Tạo phiếu nhập thiếu items",
+          "action": "POST /api/receipts với items = []",
+          "expected_error": { "code": "VALIDATION_ERROR", "http_status": 422 }
+        }
+      ]
+    }
+  }
+}
