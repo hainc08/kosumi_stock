@@ -12,9 +12,13 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 **/. env
 **/.env.local
 **/.env.*.local
+**/.env.production
+**/.env.staging
 
 # Logs
 logs/
